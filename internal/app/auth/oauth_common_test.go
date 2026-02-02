@@ -181,3 +181,48 @@ func Test_parseOauthUserInfo_admin_value_custom(t *testing.T) {
 	assert.Equal(t, info.Lastname, "")
 	assert.Equal(t, info.Email, "test@mydomain.net")
 }
+
+
+func Test_parseOauthUserInfo_fullname(t *testing.T) {
+	userInfoStr := `
+{
+  "at_hash": "REDACTED",
+  "aud": "REDACTED",
+  "c_hash": "REDACTED",
+  "email": "test@mydomain.net",
+  "email_verified": true,
+  "exp": 1737404259,
+  "is_admin": 1,
+  "iat": 1737317859,
+  "iss": "https://dex.mydomain.net",
+  "name": "Test User",
+  "nonce": "REDACTED",
+  "sub": "REDACTED"
+}
+`
+
+	userInfo := map[string]any{}
+	err := json.Unmarshal([]byte(userInfoStr), &userInfo)
+	require.NoError(t, err)
+
+	fieldMapping := getOauthFieldMapping(config.OauthFields{
+		BaseFields: config.BaseFields{
+			UserIdentifier: "email",
+			Email:          "email",
+			Fullname:       "name",
+			Firstname:	    "given_name"
+			Lastname:       "family_name",
+		},
+		IsAdmin: "is_admin",
+	})
+	adminMapping := &config.OauthAdminMapping{
+		AdminValueRegex: "^1$",
+	}
+
+	info, err := parseOauthUserInfo(fieldMapping, adminMapping, userInfo)
+	assert.NoError(t, err)
+	assert.True(t, info.IsAdmin)
+	assert.Equal(t, info.Firstname, "Test")
+	assert.Equal(t, info.Lastname, "User")
+	assert.Equal(t, info.Email, "test@mydomain.net")
+}

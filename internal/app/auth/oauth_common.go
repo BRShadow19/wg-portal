@@ -39,6 +39,18 @@ func parseOauthUserInfo(
 		}
 	}
 
+	// If the OAuth field Fullname is used, but Firstname and Lastname are not, split the Fullname into first and last
+	if mapping.Firstname == "" && mapping.Lastname == "" && mapping.Fullname != "" {
+		fullName := internal.MapDefaultString(raw, mapping.Fullname, "")
+		nameParts := strings.Fields(fullName)
+		if len(nameParts) > 0 {
+			internal.SetMapValue(raw, mapping.Firstname, nameParts[0])
+			if len(nameParts) > 1 {
+				internal.SetMapValue(raw, mapping.Lastname, strings.Join(nameParts[1:], " "))
+			}
+		}
+	}
+
 	userInfo := &domain.AuthenticatorUserInfo{
 		Identifier:         domain.UserIdentifier(internal.MapDefaultString(raw, mapping.UserIdentifier, "")),
 		Email:              internal.MapDefaultString(raw, mapping.Email, ""),
@@ -59,6 +71,7 @@ func getOauthFieldMapping(f config.OauthFields) config.OauthFields {
 		BaseFields: config.BaseFields{
 			UserIdentifier: "sub",
 			Email:          "email",
+			Fullname:	    "name",
 			Firstname:      "given_name",
 			Lastname:       "family_name",
 			Phone:          "phone",
@@ -72,6 +85,9 @@ func getOauthFieldMapping(f config.OauthFields) config.OauthFields {
 	}
 	if f.Email != "" {
 		defaultMap.Email = f.Email
+	}
+	if f.Fullname != "" {
+		defaultMap.Fullname = f.Fullname
 	}
 	if f.Firstname != "" {
 		defaultMap.Firstname = f.Firstname
